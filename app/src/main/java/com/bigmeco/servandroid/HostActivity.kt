@@ -27,10 +27,18 @@ import java.util.concurrent.TimeUnit
 import javax.xml.datatype.DatatypeConstants.SECONDS
 
 
-
-
 class HostActivity : AppCompatActivity() {
-    private val myWorkRequest = OneTimeWorkRequest.Builder(ServerWork::class.java).build()
+
+    var server = embeddedServer(CIO, port = 8080) {
+        routing {
+            get("/") {
+                call.respondText("ты пидр не очень", ContentType.Text.Plain)
+            }
+            get("/demo") {
+                call.respondText("HELLO WORLD!")
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,54 +46,44 @@ class HostActivity : AppCompatActivity() {
 
         startServer()
 
-
     }
 
     private fun startServer() {
-        WorkManager.getInstance().enqueue(myWorkRequest).state.observeForever { it ->
-            Log.d("rfgergerg", "$it  !!!")
-            if (it == Operation.SUCCESS) {
-                getIPAddress {
-                    textView.text = "$it:8080"
+        server.start()
+        getIPAddress {
+            textView.text = "$it:8080"
 
-                    val color = Color()
-                    color.light = 0xFFFbfff00.toInt() // for blank spaces
-                    color.dark = 0xFFF00574B.toInt() // for non-blank spaces
-                    color.background =
-                            0xFFFFFFFFF.toInt() // for the background (will be overriden by background images, if set)
+            val color = Color()
+            color.light = 0xFFFbfff00.toInt() // for blank spaces
+            color.dark = 0xFFF00574B.toInt() // for non-blank spaces
+            color.background = 0xFFFFFFFFF.toInt() // for the background (will be overriden by background images, if set)
 
-                    val renderOption = RenderOption()
-                    renderOption.content = "$it:8080"  // содержимое для кодирования
-                    renderOption.size = 800  // размер окончательного изображения QR-кода
-                    renderOption.borderWidth = 60  // ширина пустого пространства вокруг QR-кода
-                    renderOption.color = color // установить цветовую палитру для QR- кода
-                    try {
-                        val result = AwesomeQrRenderer.render(renderOption)
-                        when {
-                            result.bitmap != null -> {
-                                // игра с растровым изображением
-                                imageView.setImageBitmap(result.bitmap)
-                                web.loadUrl("http://localhost:8080")
+            val renderOption = RenderOption()
+            renderOption.content = "$it:8080"  // содержимое для кодирования
+            renderOption.size = 800  // размер окончательного изображения QR-кода
+            renderOption.borderWidth = 60  // ширина пустого пространства вокруг QR-кода
+            renderOption.color = color // установить цветовую палитру для QR- кода
+            try {
+                val result = AwesomeQrRenderer.render(renderOption)
 
-                            }
-                            result.type == RenderResult.OutputType.GIF -> {
-                                // Если ваш фон является GifBackground , изображение
-                                // будет сохранено в выходном файле, заданном в GifBackground
-                                //, и не будет возвращено здесь. В результате
-                                // result.bitmap будет нулевым.
-                            }
-                            else -> {
-                                // Ой, что-то пошло не так.
-                            }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        // Упс, что-то пошло не так.
+                when {
+                    result.bitmap != null -> {
+                        // игра с растровым изображением
+                        imageView.setImageBitmap(result.bitmap)
+                        web.loadUrl("http://localhost:8080")
+
+                    }
+                    result.type == RenderResult.OutputType.GIF -> {
+                    }
+                    else -> {
+                        // Ой, что-то пошло не так.
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Упс, что-то пошло не так.
             }
         }
-
 
     }
 
@@ -97,9 +95,7 @@ class HostActivity : AppCompatActivity() {
                 val addrs = Collections.list(intf.getInetAddresses())
                 for (addr in addrs) {
                     if (!addr.isLoopbackAddress()) {
-                        val sAddr = addr.getHostAddress().toUpperCase()
-                        Log.d("rfgergerg", sAddr)
-                        listener.invoke(sAddr)
+                        listener.invoke(addr.getHostAddress().toUpperCase())
                     }
                 }
             }
@@ -108,8 +104,7 @@ class HostActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
+        server.stop(0, 0, TimeUnit.SECONDS)
         super.onBackPressed()
-            //проблем
-        WorkManager.getInstance().cancelWorkById(myWorkRequest.id)
     }
 }
