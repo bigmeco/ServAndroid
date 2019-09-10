@@ -16,7 +16,6 @@ import android.support.v4.app.ActivityCompat
 class UserActivity : AppCompatActivity() , QRCodeReaderView.OnQRCodeReadListener {
 
 
-    private val resultTextView: TextView? = null
     private var qrCodeReaderView: QRCodeReaderView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,7 +24,6 @@ class UserActivity : AppCompatActivity() , QRCodeReaderView.OnQRCodeReadListener
 
 
         val permissionStatus = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-
         if (permissionStatus == PackageManager.PERMISSION_GRANTED) {
         } else {
             ActivityCompat.requestPermissions(
@@ -35,20 +33,10 @@ class UserActivity : AppCompatActivity() , QRCodeReaderView.OnQRCodeReadListener
 
         qrCodeReaderView = findViewById<View>(R.id.qrdecoderview) as QRCodeReaderView?
         qrCodeReaderView!!.setOnQRCodeReadListener(this)
-
-        // Use this function to enable/disable decoding
         qrCodeReaderView!!.setQRDecodingEnabled(true)
-
-        // Use this function to change the autofocus interval (default is 5 secs)
         qrCodeReaderView!!.setAutofocusInterval(2000L)
-
-        // Use this function to enable/disable Torch
         qrCodeReaderView!!.setTorchEnabled(true)
-
-        // Use this function to set front camera preview
         qrCodeReaderView!!.setFrontCamera()
-
-        // Use this function to set back camera preview
         qrCodeReaderView!!.setBackCamera()
     }
 
