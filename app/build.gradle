@@ -38,7 +38,9 @@ dependencies {
     implementation 'com.github.SumiMakito:AwesomeQRCode:1.2.0'
     implementation 'android.arch.work:work-runtime:1.0.1'
     implementation 'com.dlazaro66.qrcodereaderview:qrcodereaderview:2.0.3'
-
+    api "io.ktor:ktor-websockets:$ktor_version"
+    api "io.ktor:ktor-server-netty:$ktor_version"
+    api "io.ktor:ktor-client-features:$ktor_version"
     api "io.ktor:ktor-server-core:$ktor_version"
     api "io.ktor:ktor-server-cio:$ktor_version"
     api "io.ktor:ktor-client-cio:$ktor_version"
