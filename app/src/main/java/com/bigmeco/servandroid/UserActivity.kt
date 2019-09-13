@@ -42,7 +42,9 @@ class UserActivity : AppCompatActivity() , QRCodeReaderView.OnQRCodeReadListener
 
 
     override fun onQRCodeRead(text: String, points: Array<PointF>) {
-        startActivity(Intent(this, HostActivity::class.java))
+        val intent = Intent(this, GameActivity::class.java)
+        intent.putExtra("url", text)
+        startActivity(intent)
     }
 
     override fun onResume() {

@@ -5,7 +5,10 @@ import android.animation.AnimatorListenerAdapter
 import android.os.Bundle
 import android.support.constraint.ConstraintSet
 import android.support.v7.app.AppCompatActivity
+import android.text.Editable
+import android.text.TextWatcher
 import android.transition.TransitionManager
+import android.util.Log
 import android.view.View
 import com.github.sumimakito.awesomeqr.AwesomeQrRenderer
 import com.github.sumimakito.awesomeqr.RenderResult
@@ -14,6 +17,10 @@ import com.github.sumimakito.awesomeqr.option.color.Color
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.http.ContentType
+import io.ktor.http.cio.websocket.CloseReason
+import io.ktor.http.cio.websocket.Frame
+import io.ktor.http.cio.websocket.close
+import io.ktor.http.cio.websocket.readText
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.routing
@@ -22,17 +29,11 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
 import kotlinx.android.synthetic.main.activity_host.*
+import kotlinx.coroutines.channels.mapNotNull
+import kotlinx.coroutines.channels.toList
 import java.net.NetworkInterface
 import java.util.*
 import java.util.concurrent.TimeUnit
-import android.os.AsyncTask.execute
-import android.text.Editable
-import android.text.TextWatcher
-import com.bigmeco.servandroid.R.id.textView
-import io.ktor.http.cio.websocket.*
-import io.ktor.routing.patch
-import io.ktor.websocket.WebSocketServerSession
-import kotlinx.coroutines.channels.mapNotNull
 
 
 class HostActivity : AppCompatActivity() {
@@ -46,30 +47,36 @@ class HostActivity : AppCompatActivity() {
             get("/demo") {
                 call.respondText("HELLO WORLD!")
             }
-              webSocket("/myws") {
-                  for (frame in incoming.mapNotNull { it as? Frame.Text }) {
-                      val text = frame.readText()
-                      editText.addTextChangedListener(object : TextWatcher {
 
-                          override fun onTextChanged(cs: CharSequence, arg1: Int, arg2: Int, arg3: Int) {
-                          }
+            webSocket("/myws") {
+                for (frame in incoming.mapNotNull { it as? Frame.Text }) {
+                    val text = frame.readText()
+                    Log.e("dfghdfgdfgdfg",text)
 
-                          override fun beforeTextChanged(s: CharSequence, arg1: Int, arg2: Int, arg3: Int) {
+                    outgoing.send(Frame.Text("А ты пидор outgoing $text"))
+                    send(Frame.Text("А ты пидор $text"))
+                    if (text.equals("bye", ignoreCase = true)) {
+                        close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                    }
+                }
+            }
+            editText.addTextChangedListener(object : TextWatcher {
 
-                          }
+                override fun onTextChanged(cs: CharSequence, arg1: Int, arg2: Int, arg3: Int) {
+                }
 
-                          override fun afterTextChanged(arg0: Editable) {
-                              outgoing.offer(Frame.Text("А ты пидор!! ${editText.text}"))
-                          }
+                override fun beforeTextChanged(s: CharSequence, arg1: Int, arg2: Int, arg3: Int) {
 
-                      })
+                }
 
-                      outgoing.send(Frame.Text("А ты пидор $text"))
-                      if (text.equals("bye", ignoreCase = true)) {
-                          close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
-                      }
-                  }
-              }
+                override fun afterTextChanged(arg0: Editable) {
+               //     outgoing.offer(Frame.Text("А ты пидор!! ${editText.text}"))
+
+                }
+
+            })
+
+
 
         }
     }
@@ -125,10 +132,8 @@ class HostActivity : AppCompatActivity() {
 
             set.clear(R.id.buttonQr, ConstraintSet.START)
             set.clear(R.id.buttonQr, ConstraintSet.BOTTOM)
-
             set.connect(R.id.buttonQr, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.END)
-            set.connect(R.id.buttonQr, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
-
+            set.connect(R.id.buttonQr, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.TOP)    
         }
 
     }
@@ -143,7 +148,7 @@ class HostActivity : AppCompatActivity() {
             color.light = 0xFFb8f502.toInt() // for the background (will be overriden by background images, if set)
 
             val renderOption = RenderOption()
-            renderOption.content = "$it:8080"  // содержимое для кодирования
+            renderOption.content = it // содержимое для кодирования
             renderOption.size = 800  // размер окончательного изображения QR-кода
             renderOption.roundedPatterns = true
             renderOption.borderWidth = 40 // ширина пустого пространства вокруг QR-кода
@@ -156,7 +161,7 @@ class HostActivity : AppCompatActivity() {
                         // игра с растровым изображением
                         imageView3.setImageBitmap(result.bitmap)
                         imageQr.setImageBitmap(result.bitmap)
-                        web.loadUrl("http://localhost:8080")
+                        web.loadUrl("http://127.0.0.1:8080")
 
                     }
                     result.type == RenderResult.OutputType.GIF -> {
@@ -190,7 +195,7 @@ class HostActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        server.stop(0, 0, TimeUnit.SECONDS)
+    //    server.stop(0, 0, TimeUnit.SECONDS)
         super.onBackPressed()
     }
 }
