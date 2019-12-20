@@ -4,6 +4,7 @@ import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.Contacts
+import android.provider.Settings
 import android.util.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.features.websocket.WebSockets
@@ -35,7 +36,7 @@ var i =0
 
             client.ws(
                 method = HttpMethod.Get,
-                host = "192.168.1.163",
+                host = url,
                 port = 8080, path = "/myws"
             ) {
                 // this: DefaultClientWebSocketSession
@@ -43,7 +44,8 @@ var i =0
 
                 // Send text frame.
 
-                send(Frame.Text("А ты пидор outgoing "))
+                send(Frame.Text("user"))
+                send(Frame.Text(Settings.Secure.getString(applicationContext.contentResolver, Settings.Secure.ANDROID_ID)))
 
                     // launch new coroutine in background and continue
 

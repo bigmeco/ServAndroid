@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, HostActivity::class.java))
         }
         textStart.setOnClickListener {
-            startActivity(Intent(this, GameActivity::class.java))
+            startActivity(Intent(this, UserActivity::class.java))
 
         }
     }

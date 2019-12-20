@@ -3,6 +3,7 @@ package com.bigmeco.servandroid
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.os.Bundle
+import android.provider.Settings
 import android.support.constraint.ConstraintSet
 import android.support.v7.app.AppCompatActivity
 import android.text.Editable
@@ -34,15 +35,18 @@ import kotlinx.coroutines.channels.toList
 import java.net.NetworkInterface
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
 
 
 class HostActivity : AppCompatActivity() {
-
+    lateinit var users:ArrayList<String>
     var server = embeddedServer(CIO, port = 8080) {
           install(WebSockets)
         routing {
             get("/") {
                 call.respondText("ты пидр не очень", ContentType.Text.Plain)
+                Log.e("dfghdfgdfgdfg","fghfghf")
+
             }
             get("/demo") {
                 call.respondText("HELLO WORLD!")
@@ -53,10 +57,14 @@ class HostActivity : AppCompatActivity() {
                     val text = frame.readText()
                     Log.e("dfghdfgdfgdfg",text)
 
-                    outgoing.send(Frame.Text("А ты пидор outgoing $text"))
-                    send(Frame.Text("А ты пидор $text"))
                     if (text.equals("bye", ignoreCase = true)) {
                         close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                    }
+                    if (text.equals("user", ignoreCase = true)) {
+                        users.add("")
+                        for (i in users){
+                        outgoing.send(Frame.Text("Привет пидоры ${i}"))
+                        }
                     }
                 }
             }
@@ -84,6 +92,7 @@ class HostActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_host)
+         users = arrayListOf(Settings.Secure.getString(applicationContext.contentResolver, Settings.Secure.ANDROID_ID))
 
         startServer()
         buttonQr.setOnClickListener {
@@ -195,7 +204,7 @@ class HostActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-    //    server.stop(0, 0, TimeUnit.SECONDS)
+        server.stop(0, 0, TimeUnit.SECONDS)
         super.onBackPressed()
     }
 }
