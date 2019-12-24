@@ -15,86 +15,65 @@ import com.github.sumimakito.awesomeqr.AwesomeQrRenderer
 import com.github.sumimakito.awesomeqr.RenderResult
 import com.github.sumimakito.awesomeqr.option.RenderOption
 import com.github.sumimakito.awesomeqr.option.color.Color
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.http.ContentType
-import io.ktor.http.cio.websocket.CloseReason
-import io.ktor.http.cio.websocket.Frame
-import io.ktor.http.cio.websocket.close
-import io.ktor.http.cio.websocket.readText
-import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.routing
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
-import io.ktor.websocket.WebSockets
-import io.ktor.websocket.webSocket
+import com.koushikdutta.async.AsyncServer
+import com.koushikdutta.async.callback.CompletedCallback
+import com.koushikdutta.async.http.WebSocket
+import com.koushikdutta.async.http.server.AsyncHttpServer
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest
+
 import kotlinx.android.synthetic.main.activity_host.*
-import kotlinx.coroutines.channels.mapNotNull
-import kotlinx.coroutines.channels.toList
+
 import java.net.NetworkInterface
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
+import android.support.v4.app.SupportActivity
+import android.support.v4.app.SupportActivity.ExtraData
+import android.support.v4.content.ContextCompat.getSystemService
+import android.icu.lang.UCharacter.GraphemeClusterBreak.T
+import android.widget.Toast
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse
+import com.koushikdutta.async.http.server.HttpServerRequestCallback
 
 
 class HostActivity : AppCompatActivity() {
     lateinit var users:ArrayList<String>
-    var server = embeddedServer(CIO, port = 8080) {
-          install(WebSockets)
-        routing {
-            get("/") {
-                call.respondText("ты пидр не очень", ContentType.Text.Plain)
-                Log.e("dfghdfgdfgdfg","fghfghf")
 
-            }
-            get("/demo") {
-                call.respondText("HELLO WORLD!")
-            }
-
-            webSocket("/myws") {
-                for (frame in incoming.mapNotNull { it as? Frame.Text }) {
-                    val text = frame.readText()
-                    Log.e("dfghdfgdfgdfg",text)
-
-                    if (text.equals("bye", ignoreCase = true)) {
-                        close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
-                    }
-                    if (text.equals("user", ignoreCase = true)) {
-                        users.add("")
-                        for (i in users){
-                        outgoing.send(Frame.Text("Привет пидоры ${i}"))
-                        }
-                    }
-                }
-            }
-            editText.addTextChangedListener(object : TextWatcher {
-
-                override fun onTextChanged(cs: CharSequence, arg1: Int, arg2: Int, arg3: Int) {
-                }
-
-                override fun beforeTextChanged(s: CharSequence, arg1: Int, arg2: Int, arg3: Int) {
-
-                }
-
-                override fun afterTextChanged(arg0: Editable) {
-               //     outgoing.offer(Frame.Text("А ты пидор!! ${editText.text}"))
-
-                }
-
-            })
-
-
-
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_host)
          users = arrayListOf(Settings.Secure.getString(applicationContext.contentResolver, Settings.Secure.ANDROID_ID))
 
+
+
+        val _sockets = ArrayList<WebSocket>()
+
+
+        val httpServer = AsyncHttpServer()
+        httpServer.listen(AsyncServer.getDefault(), 8080)
+        httpServer.websocket("/live"
+        ) { webSocket, request ->
+            _sockets.add(webSocket)
+            webSocket.setClosedCallback { ex ->
+                try {
+                    if (ex != null)
+                        Log.e("WebSocket", "An error occurred", ex)
+                } finally {
+                    _sockets.remove(webSocket)
+                }
+            }
+            webSocket.stringCallback = WebSocket.StringCallback { s ->
+                if ("Hello Server" == s){
+                    webSocket.send("Welcome Client!")
+                    Log.d("WebSocket", "sent")
+
+                }
+            }
+
+        }
         startServer()
+
         buttonQr.setOnClickListener {
             val set = ConstraintSet()
             set.clone(mainView)
@@ -142,22 +121,21 @@ class HostActivity : AppCompatActivity() {
             set.clear(R.id.buttonQr, ConstraintSet.START)
             set.clear(R.id.buttonQr, ConstraintSet.BOTTOM)
             set.connect(R.id.buttonQr, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.END)
-            set.connect(R.id.buttonQr, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.TOP)    
+            set.connect(R.id.buttonQr, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
         }
 
     }
 
     private fun startServer() {
-        server.start()
         getIPAddress {
-            textView.text = "$it:8080"
+            textView.text = "$it:8080/live"
             val color = Color()
             color.dark = 0xFF00574b.toInt() // for blank spaces
             color.background = 0xBD00574B.toInt() // for non-blank spaces
             color.light = 0xFFb8f502.toInt() // for the background (will be overriden by background images, if set)
 
             val renderOption = RenderOption()
-            renderOption.content = it // содержимое для кодирования
+            renderOption.content = "$it:8080/live" // содержимое для кодирования
             renderOption.size = 800  // размер окончательного изображения QR-кода
             renderOption.roundedPatterns = true
             renderOption.borderWidth = 40 // ширина пустого пространства вокруг QR-кода
@@ -188,15 +166,19 @@ class HostActivity : AppCompatActivity() {
     }
 
 
-    fun getIPAddress(listener: (String) -> Unit) {
+    private fun getIPAddress(listener: (String) -> Unit) {
         try {
             val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
             for (intf in interfaces) {
-                val addrs = Collections.list(intf.getInetAddresses())
+                val addrs = Collections.list(intf.inetAddresses)
                 for (addr in addrs) {
-                    if (!addr.isLoopbackAddress()) {
-                        listener.invoke(addr.getHostAddress().toUpperCase())
+                    println("Display name: "
+                            + addr.hostAddress.subSequence(0,3))
+                    if (addr.hostAddress.subSequence(0,3)== "192"|| addr.hostAddress.subSequence(0,3)== "172"|| addr.hostAddress.subSequence(0,3)== "10." ) {
+
+                        listener.invoke(addr.hostAddress.toUpperCase())
                     }
+
                 }
             }
         } catch (ex: Exception) {
@@ -204,7 +186,6 @@ class HostActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        server.stop(0, 0, TimeUnit.SECONDS)
         super.onBackPressed()
     }
 }
