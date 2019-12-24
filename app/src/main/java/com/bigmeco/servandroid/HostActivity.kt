@@ -128,14 +128,14 @@ class HostActivity : AppCompatActivity() {
 
     private fun startServer() {
         getIPAddress {
-            textView.text = "$it:8080/live"
+            textView.text = "$it"
             val color = Color()
             color.dark = 0xFF00574b.toInt() // for blank spaces
             color.background = 0xBD00574B.toInt() // for non-blank spaces
             color.light = 0xFFb8f502.toInt() // for the background (will be overriden by background images, if set)
 
             val renderOption = RenderOption()
-            renderOption.content = "$it:8080/live" // содержимое для кодирования
+            renderOption.content = it // содержимое для кодирования
             renderOption.size = 800  // размер окончательного изображения QR-кода
             renderOption.roundedPatterns = true
             renderOption.borderWidth = 40 // ширина пустого пространства вокруг QR-кода
@@ -175,7 +175,6 @@ class HostActivity : AppCompatActivity() {
                     println("Display name: "
                             + addr.hostAddress.subSequence(0,3))
                     if (addr.hostAddress.subSequence(0,3)== "192"|| addr.hostAddress.subSequence(0,3)== "172"|| addr.hostAddress.subSequence(0,3)== "10." ) {
-
                         listener.invoke(addr.hostAddress.toUpperCase())
                     }
 
