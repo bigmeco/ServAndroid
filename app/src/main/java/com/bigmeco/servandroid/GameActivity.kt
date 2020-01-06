@@ -7,6 +7,7 @@ import com.koushikdutta.async.http.AsyncHttpClient
 import com.koushikdutta.async.http.AsyncHttpGet
 import com.koushikdutta.async.http.WebSocket
 import kotlinx.android.synthetic.main.activity_game.*
+import java.nio.BufferUnderflowException
 
 
 class GameActivity : AppCompatActivity() {
@@ -21,7 +22,7 @@ class GameActivity : AppCompatActivity() {
         Log.d("fdgdfgdfg", "ws://$url:8080/live")
 
 
-        AsyncHttpClient.getDefaultInstance().websocket("ws://$url:8080/live", null) { ex, webSocket ->
+        var g = AsyncHttpClient.getDefaultInstance().websocket("ws://$url:8080/live", null) { ex, webSocket ->
             run {
                 Log.d("webSocket",webSocket?.isOpen.toString())
 
@@ -34,6 +35,8 @@ class GameActivity : AppCompatActivity() {
                 webSocket.send("Hello Server")
 
 
+
+
                 webSocket.setStringCallback {
                     textView2.text = it
                     Log.d("dfdsfsdf", it + " m md")
@@ -41,6 +44,7 @@ class GameActivity : AppCompatActivity() {
             }
 
         }
+
         button.setOnClickListener {
             Log.d("webSocket",webSocket?.isOpen.toString())
 

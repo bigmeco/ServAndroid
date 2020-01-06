@@ -6,8 +6,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.support.constraint.ConstraintSet
 import android.support.v7.app.AppCompatActivity
-import android.text.Editable
-import android.text.TextWatcher
 import android.transition.TransitionManager
 import android.util.Log
 import android.view.View
@@ -16,55 +14,45 @@ import com.github.sumimakito.awesomeqr.RenderResult
 import com.github.sumimakito.awesomeqr.option.RenderOption
 import com.github.sumimakito.awesomeqr.option.color.Color
 import com.koushikdutta.async.AsyncServer
-import com.koushikdutta.async.callback.CompletedCallback
 import com.koushikdutta.async.http.WebSocket
 import com.koushikdutta.async.http.server.AsyncHttpServer
-import com.koushikdutta.async.http.server.AsyncHttpServerRequest
-
 import kotlinx.android.synthetic.main.activity_host.*
-
 import java.net.NetworkInterface
 import java.util.*
-import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
-import android.support.v4.app.SupportActivity
-import android.support.v4.app.SupportActivity.ExtraData
-import android.support.v4.content.ContextCompat.getSystemService
-import android.icu.lang.UCharacter.GraphemeClusterBreak.T
-import android.widget.Toast
-import com.koushikdutta.async.http.server.AsyncHttpServerResponse
-import com.koushikdutta.async.http.server.HttpServerRequestCallback
 
 
 class HostActivity : AppCompatActivity() {
-    lateinit var users:ArrayList<String>
+    lateinit var users: ArrayList<String>
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_host)
-         users = arrayListOf(Settings.Secure.getString(applicationContext.contentResolver, Settings.Secure.ANDROID_ID))
+        users = arrayListOf(Settings.Secure.getString(applicationContext.contentResolver, Settings.Secure.ANDROID_ID))
 
 
-
-        val _sockets = ArrayList<WebSocket>()
+        val users = ArrayList<UserPojo>()
 
 
         val httpServer = AsyncHttpServer()
         httpServer.listen(AsyncServer.getDefault(), 8080)
-        httpServer.websocket("/live"
+        httpServer.websocket(
+            "/live"
         ) { webSocket, request ->
-            _sockets.add(webSocket)
+            val user = UserPojo()
+            user.socet = webSocket
+            users.add(user)
             webSocket.setClosedCallback { ex ->
                 try {
                     if (ex != null)
                         Log.e("WebSocket", "An error occurred", ex)
                 } finally {
-                    _sockets.remove(webSocket)
+                    users.remove(user)
                 }
             }
             webSocket.stringCallback = WebSocket.StringCallback { s ->
-                if ("Hello Server" == s){
+                if ("Hello Server" == s) {
                     webSocket.send("Welcome Client!")
                     Log.d("WebSocket", "sent")
 
@@ -80,6 +68,9 @@ class HostActivity : AppCompatActivity() {
             changeConstraints(set)
             TransitionManager.beginDelayedTransition(mainView)
             set.applyTo(mainView)
+            for (user in users) {
+                user.socet?.send("scan")
+            }
         }
 
     }
@@ -172,9 +163,11 @@ class HostActivity : AppCompatActivity() {
             for (intf in interfaces) {
                 val addrs = Collections.list(intf.inetAddresses)
                 for (addr in addrs) {
-                    println("Display name: "
-                            + addr.hostAddress.subSequence(0,3))
-                    if (addr.hostAddress.subSequence(0,3)== "192"|| addr.hostAddress.subSequence(0,3)== "172"|| addr.hostAddress.subSequence(0,3)== "10." ) {
+                    println(
+                        "Display name: "
+                                + addr.hostAddress
+                    )
+                    if (addr.hostAddress.subSequence(0, 3) == "192" || addr.hostAddress.subSequence(0, 3) == "172") {
                         listener.invoke(addr.hostAddress.toUpperCase())
                     }
 
